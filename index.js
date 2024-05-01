@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 const app = express();
 const port = 4000;
 
+// In-memory data store
 let posts = [
   {
     id: 1,
@@ -31,10 +32,14 @@ let posts = [
   },
 ];
 
-app.use(bodyParser.json());
+let lastId = 3;
+
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 app.get("/posts", (req, res) => {
+  console.log(posts);
   res.json(posts);
 });
 
@@ -44,37 +49,36 @@ app.get("/posts/:id", (req, res) => {
   res.json(post);
 });
 
-app.post("/posts" , (req,res)=>{
+app.post("/posts", (req, res) => {
+  const newId = lastId += 1;
   const post = {
-    id: posts.length + 1,
+    id: newId,
     title: req.body.title,
     content: req.body.content,
     author: req.body.author,
     date: new Date(),
   };
+  lastId = newId;
   posts.push(post);
   res.status(201).json(post);
 });
 
 app.patch("/posts/:id", (req, res) => {
-  const id = req.params.id;
-  const postExisting = posts.find((qualquercoisa) => qualquercoisa.id == id);
-  let updatePost = {
-     id: id,
-    title: req.body.title || postExisting.title,
-    content: req.body.content || postExisting.content,
-    author: req.body.author ||  postExisting.author,
-    date: new Date().toDateString(),
-  };
-  const searchIndex = posts.findIndex((qualquercoisa) => qualquercoisa.id == id);
-  posts[searchIndex] = updatePost;
-  res.json(updatePost);
-  });
+  const post = posts.find((p) => p.id === parseInt(req.params.id));
+  if (!post) return res.status(404).json({ message: "Post not found" });
+
+  if (req.body.title) post.title = req.body.title;
+  if (req.body.content) post.content = req.body.content;
+  if (req.body.author) post.author = req.body.author;
+
+  res.json(post);
+});
 
 app.delete("/posts/:id", (req, res) => {
-  const searchIndex = posts.findIndex((p) =>p.id === parseInt(req.params.id));
-  if (searchIndex === -1) return res.status(404).json({ message: "Post not found" });
-  posts.splice(searchIndex, 1);
+  const index = posts.findIndex((p) => p.id === parseInt(req.params.id));
+  if (index === -1) return res.status(404).json({ message: "Post not found" });
+
+  posts.splice(index, 1);
   res.json({ message: "Post deleted" });
 });
 
